@@ -8,7 +8,7 @@ jobs:
   build-and-test:
     # Проверьте, что в настройках раннера на сайте 
     # в колонке Labels написано именно "self-hosted"
-    runs-on: self-hosted
+    runs-on: [self-hosted, windows, x64]
 
     steps:
       - name: Checkout repository
