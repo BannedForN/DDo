@@ -16,3 +16,4 @@ uploads/
 # Игнорируем отчеты, которые будет генерировать CI
 *.json
 *.xml
+/actions-runner
