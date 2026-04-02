@@ -1,0 +1,62 @@
+name: FastAPI CI Pipeline
+
+# Запуск при пуше в ветку main
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    # Запускаем на вашем настроенном раннере
+    runs-on: self-hosted
+
+    # Настройка URL для переадресации (требование из задания)
+    environment:
+      name: production
+      # Укажите реальный IP или домен, где будет доступно API
+      url: http://my-fastapi-server.local/docs 
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11' # Укажите вашу версию Python
+
+      # 1) ПРОВЕРКА СБОРКИ ПРОЕКТА
+      # Для Python это установка зависимостей и компиляция файлов в байт-код
+      - name: Build Project (Install dependencies & Compile)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff pytest bandit
+          python -m compileall . 
+
+      # 2) ПРОВЕРКА СИНТАКСИЧЕСКИХ ОШИБОК ЛИНТЕРОМ
+      # Используем Ruff (сохраняем отчет в файл для выгрузки)
+      - name: Run Linter (Ruff)
+        run: ruff check . --output-format=json -o linter-report.json
+        continue-on-error: true # Позволяет пайплайну продолжить работу, даже если есть ворнинги
+
+      # 3.1) ДОПОЛНИТЕЛЬНАЯ ЗАДАЧА 1: Запуск юнит-тестов (Pytest)
+      - name: Run Unit Tests
+        run: pytest --junitxml=pytest-report.xml
+
+      # 3.2) ДОПОЛНИТЕЛЬНАЯ ЗАДАЧА 2: Анализ безопасности кода (Bandit)
+      - name: Security Scan
+        run: bandit -r . -f json -o bandit-report.json
+        continue-on-error: true
+
+      # НА ОЦЕНКУ 5: ВЫГРУЗКА АРТЕФАКТОВ
+      # Выгружаем все созданные отчеты
+      - name: Upload Analysis Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: fastapi-ci-reports
+          path: |
+            linter-report.json
+            pytest-report.xml
+            bandit-report.json
+          retention-days: 7
