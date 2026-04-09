@@ -4,6 +4,9 @@ services:
   fastapi-app:
     build: .
     container_name: my-fastapi-server
+    # Чтобы из контейнера достучаться до MySQL/LLM на хосте по host.docker.internal (и на Linux)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       # ВОТ ТО САМОЕ РЕШЕНИЕ ДЛЯ ПРЕПОДАВАТЕЛЯ: 
       # Мы пробрасываем 8000 порт контейнера на стандартный 80 порт сервера, 
