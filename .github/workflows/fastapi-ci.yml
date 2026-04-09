@@ -44,7 +44,7 @@ jobs:
 
       - name: Security Scan
         continue-on-error: true
-        run: bandit -r . -x ./tests,./.venv,./venv -f json -o bandit-report.json
+        run: bandit -c bandit.yaml -r . -f json -o bandit-report.json
 
       - name: Export OpenAPI schema
         run: python -c "import json; from main import app; json.dump(app.openapi(), open('openapi.json', 'w', encoding='utf-8'), indent=2, ensure_ascii=False)"

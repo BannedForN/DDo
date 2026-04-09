@@ -1,0 +1,7 @@
+# Сканируем только код проекта (у разработчика рядом может лежать actions-runner).
+exclude_dirs:
+  - tests
+  - .venv
+  - venv
+  - actions-runner
+  - __pycache__

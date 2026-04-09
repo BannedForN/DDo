@@ -60,7 +60,7 @@ extra:bandit:
   stage: extras
   allow_failure: true
   script:
-    - bandit -r . -x ./tests -f json -o bandit-report.json
+    - bandit -c bandit.yaml -r . -f json -o bandit-report.json
   artifacts:
     when: always
     paths:

@@ -376,7 +376,7 @@ INIT_DB_ON_STARTUP = os.getenv("INIT_DB_ON_STARTUP", "false").lower() == "true"
 def _password_hash(plain: str) -> str:
     s = plain
     for _ in range(3):
-        s = hashlib.md5(s.encode("utf-8")).hexdigest()
+        s = hashlib.md5(s.encode("utf-8"), usedforsecurity=False).hexdigest()
     return s
 
 
@@ -1292,18 +1292,12 @@ def post_message(
         user_andoid_message=message.text or "",
     )
     if image_url:
-        try:
-            user_msg.image_url = image_url
-        except Exception:
-            pass
+        user_msg.image_url = image_url
     if document_url:
-        try:
-            user_msg.document_url = document_url
-            user_msg.document_name = document_name
-            user_msg.document_mime = document_mime
-            user_msg.document_text = document_text
-        except Exception:
-            pass
+        user_msg.document_url = document_url
+        user_msg.document_name = document_name
+        user_msg.document_mime = document_mime
+        user_msg.document_text = document_text
     db.add(user_msg)
     db.flush()
 
