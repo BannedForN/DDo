@@ -1,0 +1,94 @@
+# Пайплайн для GitLab (аналог задания №11).
+# В GitLab: Settings → CI/CD → Runners — у раннера должны быть те же tags, что в `tags:` ниже.
+# Для Docker-исполнителя на Linux обычно tag `docker`; для shell — свой tag (например `shell`).
+
+stages:
+  - build
+  - lint
+  - test
+  - extras
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+# --- Образ для job'ов (замените тег раннера на свой) ---
+.python-base:
+  image: python:3.11-slim
+  tags:
+    - docker
+  before_script:
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+    - pip install ruff pytest bandit
+
+build:project:
+  extends: .python-base
+  stage: build
+  script:
+    - python -m compileall -q .
+    - pip wheel --no-deps -w dist .
+
+lint:ruff:
+  extends: .python-base
+  stage: lint
+  script:
+    - set -o pipefail
+    - ruff check . --output-format=json | tee linter-report.json
+  artifacts:
+    when: always
+    paths:
+      - linter-report.json
+    expire_in: 1 week
+
+test:pytest:
+  extends: .python-base
+  stage: test
+  variables:
+    CI_SKIP_STARTUP: "1"
+  script:
+    - pytest --junitxml=pytest-report.xml -v
+  artifacts:
+    when: always
+    reports:
+      junit: pytest-report.xml
+    paths:
+      - pytest-report.xml
+    expire_in: 1 week
+
+extra:bandit:
+  extends: .python-base
+  stage: extras
+  allow_failure: true
+  script:
+    - bandit -r . -x ./tests -f json -o bandit-report.json
+  artifacts:
+    when: always
+    paths:
+      - bandit-report.json
+    expire_in: 1 week
+
+extra:openapi:
+  extends: .python-base
+  stage: extras
+  script:
+    - python -c "import json; from main import app; json.dump(app.openapi(), open('openapi.json', 'w', encoding='utf-8'), indent=2, ensure_ascii=False)"
+  artifacts:
+    paths:
+      - openapi.json
+    expire_in: 1 week
+
+# Нужен runner с privileged=true для docker-in-docker. Иначе отключите job или ставьте allow_failure.
+docker:build:
+  stage: build
+  tags:
+    - docker
+  image: docker:24-cli
+  services:
+    - docker:24-dind
+  allow_failure: true
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  script:
+    - docker build -t "$CI_REGISTRY_IMAGE:ci-$CI_COMMIT_SHORT_SHA" .
+  rules:
+    - if: $CI_COMMIT_BRANCH

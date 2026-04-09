@@ -1,48 +1,61 @@
+# Self-hosted Windows: не используйте actions/setup-python — ему нужны права на HKLM.
+# Установите Python 3.11+ в систему и убедитесь, что команды python / py доступны в PATH.
+# Для линтера удобно иметь Git for Windows (bash), иначе поменяйте shell у шага «Run Linter».
+
 name: FastAPI CI Pipeline
 
 on:
   push:
-    branches: [ main, master ] # добавил master на всякий случай
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
 
 jobs:
   build-and-test:
-    # Проверьте, что в настройках раннера на сайте 
-    # в колонке Labels написано именно "self-hosted"
     runs-on: [self-hosted, windows, x64]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+      - name: Python version
+        run: python --version
 
       - name: Build and Install
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install ruff pytest bandit httpx
-          python -m compileall .
+          pip install ruff pytest bandit
+          python -m compileall -q .
+
+      - name: Docker image build
+        run: docker build -t fastapi-app:ci .
 
       - name: Run Linter
-        run: ruff check . --output-format=json -o linter-report.json
-        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          ruff check . --output-format=json | tee linter-report.json
 
       - name: Run Tests
-        run: pytest --junitxml=pytest-report.xml || echo "No tests"
+        env:
+          CI_SKIP_STARTUP: "1"
+        run: pytest --junitxml=pytest-report.xml -v
 
       - name: Security Scan
-        run: bandit -r . -f json -o bandit-report.json
         continue-on-error: true
+        run: bandit -r . -x ./tests,./.venv,./venv -f json -o bandit-report.json
+
+      - name: Export OpenAPI schema
+        run: python -c "import json; from main import app; json.dump(app.openapi(), open('openapi.json', 'w', encoding='utf-8'), indent=2, ensure_ascii=False)"
 
       - name: Upload Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: reports
+          name: ci-reports
           path: |
             linter-report.json
             pytest-report.xml
             bandit-report.json
+            openapi.json

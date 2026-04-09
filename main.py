@@ -431,6 +431,9 @@ def require_admin(
 
 @app.on_event("startup")
 def startup():
+    # В CI (pytest без MySQL) установите CI_SKIP_STARTUP=1
+    if os.getenv("CI_SKIP_STARTUP", "").lower() in ("1", "true", "yes"):
+        return
     _ensure_image_url_column()
     _ensure_document_columns()
     _ensure_roles_and_modes_tables()
