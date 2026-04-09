@@ -1,6 +1,6 @@
 # Self-hosted Windows: не используйте actions/setup-python — ему нужны права на HKLM.
 # Установите Python 3.11+ в систему и убедитесь, что команды python / py доступны в PATH.
-# Для линтера удобно иметь Git for Windows (bash), иначе поменяйте shell у шага «Run Linter».
+# Линтер запускается через cmd (на Windows bash от GHA часто ломает путь к временному .sh).
 
 name: FastAPI CI Pipeline
 
@@ -32,10 +32,10 @@ jobs:
         run: docker build -t fastapi-app:ci .
 
       - name: Run Linter
-        shell: bash
+        shell: cmd
         run: |
-          set -o pipefail
-          ruff check . --output-format=json | tee linter-report.json
+          ruff check . --output-format=json 1> linter-report.json
+          if errorlevel 1 exit /b 1
 
       - name: Run Tests
         env:
