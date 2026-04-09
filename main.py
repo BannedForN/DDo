@@ -6,7 +6,6 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 from typing import List, Optional, Any
 import os
 import hashlib
@@ -1551,5 +1550,5 @@ def generate_bot_reply(db: Session, history: List[Any], template: Optional[str] 
         )
     except requests.exceptions.Timeout:
         return "Элион недоступен: превышено время ожидания ответа."
-    except Exception as exc:
+    except Exception:
         return "Элион недоступен: временная ошибка сервиса."

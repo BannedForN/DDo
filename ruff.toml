@@ -1,0 +1,6 @@
+# load_dotenv() в main.py до импорта database — стандартный паттерн; длинные строки в промптах не режем.
+exclude = [".git", "venv", ".venv", "actions-runner", "__pycache__"]
+
+[lint]
+select = ["E", "F"]
+ignore = ["E402", "E501"]
